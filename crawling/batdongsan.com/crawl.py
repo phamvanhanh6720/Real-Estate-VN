@@ -6,6 +6,7 @@ import datetime
 import threading
 from configparser import ConfigParser
 
+import numpy as np
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 
@@ -73,8 +74,9 @@ def extract_news_data(element, driver):
 
 def crawl_data(db, seed_url_list, log):
     options = uc.ChromeOptions()
-    options.headless = False
+    options.headless = True
     driver = uc.Chrome(use_subprocess=True, options=options)
+    driver.set_page_load_timeout(10)
 
     for seed_url in seed_url_list:
         real_estate_type = None
@@ -98,7 +100,10 @@ def crawl_data(db, seed_url_list, log):
         for i in range(5):
             main_url = f'{seed_url}/p{start_page}'
             log.info(f"Start crawl pages: {main_url}")
-            driver.get(main_url)
+            try:
+                driver.get(main_url)
+            except:
+                continue
 
             scroll_down(driver, int(MAX_SLEEP_TIME / 2))
 
@@ -121,8 +126,8 @@ def crawl_data(db, seed_url_list, log):
                         no_saved_news += 1
                         log.info(f"{real_estate_type} - Already crawled: {HOSTNAME}{ele.get('href')}")
 
-                except Exception as e:
-                    log.warning(f"{real_estate_type} - Fail: {HOSTNAME}{ele.get('href')}" )
+                except:
+                    log.info(f"{real_estate_type} - Fail: {HOSTNAME}{ele.get('href')}" )
 
             time.sleep(random.randint(0, MAX_SLEEP_TIME))
             start_page += 1
@@ -163,15 +168,16 @@ if __name__ == '__main__':
         seed_urls_list = file.readlines()
     seed_urls_list = [url.strip(' \n') for url in seed_urls_list if url != '']
 
-    no_threads = 2
-    t1 = threading.Thread(target=crawl_data, args=(db_connection, seed_urls_list[:3].copy(), logger))
-    t2 = threading.Thread(target=crawl_data, args=(db_connection, seed_urls_list[3:].copy(), logger))
+    no_threads = 3
+    seed_urls_list = np.array_split(seed_urls_list, no_threads)
+    seed_urls_list = [seed_urls.tolist() for seed_urls in seed_urls_list]
 
-    t1.start()
-    # starting thread 2
-    t2.start()
+    threads = []
+    for idx in range(no_threads):
+        threads.append(threading.Thread(target=crawl_data, args=(db_connection, seed_urls_list[idx].copy(), logger)))
 
-    # wait until thread 1 is completely executed
-    t1.join()
-    # wait until thread 2 is completely executed
-    t2.join()
+    for idx in range(no_threads):
+        threads[idx].start()
+
+    for idx in range(no_threads):
+        threads[idx].join()
