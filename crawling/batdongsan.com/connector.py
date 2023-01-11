@@ -28,5 +28,8 @@ class Database:
         )
         self.db = self.client[database]
 
+    def __del__(self):
+        self.client.close()
+
     def get_db(self):
         return self.db

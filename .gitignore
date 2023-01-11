@@ -2,3 +2,4 @@ crawling/batdongsan.com/config
 .idea
 **/*.pyc
 crawling/batdongsan.com/logs
+crawling/batdongsan.com/driver

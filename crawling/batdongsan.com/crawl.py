@@ -72,11 +72,14 @@ def extract_news_data(element, driver):
     return news_data
 
 
-def crawl_data(db, seed_url_list, log):
+def crawl_data(db, seed_url_list, log, thread):
     options = uc.ChromeOptions()
-    options.headless = True
-    driver = uc.Chrome(use_subprocess=True, options=options)
-    driver.set_page_load_timeout(10)
+    options.headless = False
+    driver = uc.Chrome(use_subprocess=True,
+                       options=options,
+                       driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
+                       )
+    driver.set_page_load_timeout(5)
 
     for seed_url in seed_url_list:
         real_estate_type = None
@@ -97,7 +100,7 @@ def crawl_data(db, seed_url_list, log):
         # while True:
         start_page = 1
         no_saved_news = 0
-        for i in range(5):
+        while True:
             main_url = f'{seed_url}/p{start_page}'
             log.info(f"Start crawl pages: {main_url}")
             try:
@@ -174,7 +177,9 @@ if __name__ == '__main__':
 
     threads = []
     for idx in range(no_threads):
-        threads.append(threading.Thread(target=crawl_data, args=(db_connection, seed_urls_list[idx].copy(), logger)))
+        threads.append(threading.Thread(target=crawl_data,
+                                        args=(db_connection, seed_urls_list[idx].copy(), logger, idx+1))
+                       )
 
     for idx in range(no_threads):
         threads[idx].start()
