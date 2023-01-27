@@ -3,3 +3,4 @@ crawling/batdongsan.com/config
 **/*.pyc
 crawling/batdongsan.com/logs
 crawling/batdongsan.com/driver
+crawling/batdongsan.com/daily_reports

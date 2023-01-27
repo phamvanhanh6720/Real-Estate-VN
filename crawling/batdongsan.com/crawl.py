@@ -7,10 +7,11 @@ import threading
 from configparser import ConfigParser
 
 import numpy as np
+import telebot
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 
-from utils import scroll_down, crawl_each_news_item
+from utils import scroll_down, crawl_each_news_item, parser_log, create_visualize_figure
 from connector import Database
 
 
@@ -75,6 +76,7 @@ def extract_news_data(element, driver):
 def crawl_data(db, seed_url_list, log, thread):
     options = uc.ChromeOptions()
     options.headless = False
+    options.add_argument('--disable-gpu')
     driver = uc.Chrome(use_subprocess=True,
                        options=options,
                        driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
@@ -100,7 +102,8 @@ def crawl_data(db, seed_url_list, log, thread):
         # while True:
         start_page = 1
         no_saved_news = 0
-        while True:
+        # while True:
+        for i in range(2):
             main_url = f'{seed_url}/p{start_page}'
             log.info(f"Start crawl pages: {main_url}")
             try:
@@ -129,7 +132,8 @@ def crawl_data(db, seed_url_list, log, thread):
                         no_saved_news += 1
                         log.info(f"{real_estate_type} - Already crawled: {HOSTNAME}{ele.get('href')}")
 
-                except:
+                except Exception as e:
+                    print(e)
                     log.info(f"{real_estate_type} - Fail: {HOSTNAME}{ele.get('href')}" )
 
             time.sleep(random.randint(0, MAX_SLEEP_TIME))
@@ -140,7 +144,8 @@ def crawl_data(db, seed_url_list, log, thread):
 
 if __name__ == '__main__':
     # create logger
-    logging.basicConfig(filename=f'logs/batdongsan_{datetime.date.today()}.log',
+    crawling_date = datetime.date.today()
+    logging.basicConfig(filename=f'logs/batdongsan_{crawling_date}.log',
                         format='%(asctime)s - %(message)s',
                         datefmt='%d-%b-%y %H:%M:%S')
     logger = logging.getLogger(__name__)
@@ -165,13 +170,15 @@ if __name__ == '__main__':
     ).get_db()
     logger.info('Connect to MongoDB done')
 
+    bot = telebot.TeleBot(config.get('TELEBOT', 'TOKEN'))
+
     # seed url list
     seed_urls_file = config.get('URL', 'SEED_URL_FILE')
     with open(os.path.join('config', seed_urls_file), 'r') as file:
         seed_urls_list = file.readlines()
     seed_urls_list = [url.strip(' \n') for url in seed_urls_list if url != '']
 
-    no_threads = 3
+    no_threads = int(config.get('THREAD', 'NUM_THREADS'))
     seed_urls_list = np.array_split(seed_urls_list, no_threads)
     seed_urls_list = [seed_urls.tolist() for seed_urls in seed_urls_list]
 
@@ -186,3 +193,19 @@ if __name__ == '__main__':
 
     for idx in range(no_threads):
         threads[idx].join()
+
+    counting_reports, total_time = parser_log(log_file=f'logs/batdongsan_{crawling_date}.log')
+    create_visualize_figure(
+        counting_reports=counting_reports,
+        save_file=f'daily_reports/batdongsan_{crawling_date}.png'
+    )
+
+    bot.send_message(
+        chat_id=int(config.get('TELEBOT', 'CHAT_ID')),
+        text=f'REPORT - Batdongsan.com - {crawling_date} \n Total time: {total_time} hours'
+    )
+
+    bot.send_photo(
+        chat_id=int(config.get('TELEBOT', 'CHAT_ID')),
+        photo=open(f'daily_reports/batdongsan_{crawling_date}.png', 'rb')
+    )
