@@ -18,7 +18,6 @@ from connector import Database
 def extract_news_data(element, driver):
     url = element.get('href')
     url = f'{HOSTNAME}{url}'
-
     title = element.get('title')
 
     price_element = element.find('span', class_='re__card-config-price')
@@ -67,8 +66,7 @@ def extract_news_data(element, driver):
         'published_date': published_date,
         'project': project
     }
-
-    crawl_each_news_item(driver, url, MAX_SLEEP_TIME, news_data)
+    crawl_each_news_item(driver, url, MAX_SLEEP_TIME, news_data, page_load_time_out=PAGE_LOAD_TIMEOUT)
 
     return news_data
 
@@ -77,11 +75,13 @@ def crawl_data(db, seed_url_list, log, thread):
     options = uc.ChromeOptions()
     options.headless = False
     options.add_argument('--disable-gpu')
+    options.page_load_strategy = 'normal'
     driver = uc.Chrome(use_subprocess=True,
                        options=options,
                        driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
                        )
-    driver.set_page_load_timeout(5)
+    driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
+    driver.set_script_timeout(SCRIPT_LOAD_TIMEOUT)
 
     for seed_url in seed_url_list:
         real_estate_type = None
@@ -102,16 +102,17 @@ def crawl_data(db, seed_url_list, log, thread):
         # while True:
         start_page = 1
         no_saved_news = 0
-        # while True:
-        for i in range(2):
+        while True and start_page < 1000:
             main_url = f'{seed_url}/p{start_page}'
             log.info(f"Start crawl pages: {main_url}")
             try:
                 driver.get(main_url)
+                driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
             except:
+                start_page += 1
                 continue
 
-            scroll_down(driver, int(MAX_SLEEP_TIME / 2))
+            scroll_down(driver, int(MAX_SLEEP_TIME))
 
             html_content = driver.page_source
             soup = BeautifulSoup(html_content, features="html.parser")
@@ -126,7 +127,7 @@ def crawl_data(db, seed_url_list, log, thread):
                     news_data = extract_news_data(ele, driver)
                     news_data['real_estate_type'] = real_estate_type
                     try:
-                        db['data.news'].insert_one(news_data)
+                        db['COLLECTION'].insert_one(news_data)
                         log.info(f"{real_estate_type} - Done: {HOSTNAME}{ele.get('href')}")
                     except:
                         no_saved_news += 1
@@ -157,7 +158,11 @@ if __name__ == '__main__':
 
     MAX_SLEEP_TIME: int = int(config.get('TIME', 'MAX_SLEEP_TIME'))
     HOSTNAME = config.get('URL', 'HOST_NAME')
+    COLLECTION = config.get('DB', 'COLLECTION')
+
     MAX_DONE_PAGES = int(config.get('STOP', 'MAX_DONE_PAGES'))
+    PAGE_LOAD_TIMEOUT = int(config.get('TIME', 'PAGE_LOAD_TIMEOUT'))
+    SCRIPT_LOAD_TIMEOUT =  int(config.get('TIME', 'SCRIPT_LOAD_TIMEOUT'))
 
     db_connection = Database(
         host=config.get('DB', 'HOST'),
@@ -209,3 +214,4 @@ if __name__ == '__main__':
         chat_id=int(config.get('TELEBOT', 'CHAT_ID')),
         photo=open(f'daily_reports/batdongsan_{crawling_date}.png', 'rb')
     )
+    bot.stop_bot()

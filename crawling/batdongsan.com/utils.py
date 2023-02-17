@@ -9,14 +9,17 @@ from bs4 import BeautifulSoup
 
 def scroll_down(driver, max_sleep_time: int):
     time.sleep(random.randint(0, max_sleep_time))
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight / 2);")
-    time.sleep(random.randint(0, max_sleep_time))
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(random.randint(0, max_sleep_time))
 
 
-def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict):
-    driver.get(url)
-    scroll_down(driver, int(max_sleep_time / 2))
+def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict, page_load_time_out: int):
+    try:
+        driver.get(url)
+        driver.set_page_load_timeout(page_load_time_out)
+    except:
+        raise Exception("Page load timeout")
+    scroll_down(driver, int(max_sleep_time))
     html = driver.page_source
     soup_item = BeautifulSoup(html, features="html.parser")
 
