@@ -76,7 +76,7 @@ def crawl_data(db, seed_url_list, log, thread):
     options.headless = False
     options.add_argument('--disable-gpu')
     options.page_load_strategy = 'normal'
-    driver = uc.Chrome(use_subprocess=True,
+    driver = uc.Chrome(use_subprocess=False,
                        options=options,
                        driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
                        )
@@ -127,7 +127,7 @@ def crawl_data(db, seed_url_list, log, thread):
                     news_data = extract_news_data(ele, driver)
                     news_data['real_estate_type'] = real_estate_type
                     try:
-                        db['COLLECTION'].insert_one(news_data)
+                        db[COLLECTION].insert_one(news_data)
                         log.info(f"{real_estate_type} - Done: {HOSTNAME}{ele.get('href')}")
                     except:
                         no_saved_news += 1
@@ -184,20 +184,26 @@ if __name__ == '__main__':
     seed_urls_list = [url.strip(' \n') for url in seed_urls_list if url != '']
 
     no_threads = int(config.get('THREAD', 'NUM_THREADS'))
-    seed_urls_list = np.array_split(seed_urls_list, no_threads)
-    seed_urls_list = [seed_urls.tolist() for seed_urls in seed_urls_list]
+    # seed_urls_list = np.array_split(seed_urls_list, no_threads)
+    # seed_urls_list = [seed_urls.tolist() for seed_urls in seed_urls_list]
 
-    threads = []
-    for idx in range(no_threads):
-        threads.append(threading.Thread(target=crawl_data,
-                                        args=(db_connection, seed_urls_list[idx].copy(), logger, idx+1))
-                       )
-
-    for idx in range(no_threads):
-        threads[idx].start()
-
-    for idx in range(no_threads):
-        threads[idx].join()
+    # threads = []
+    # for idx in range(no_threads):
+    #     threads.append(threading.Thread(target=crawl_data,
+    #                                     args=(db_connection, seed_urls_list[idx].copy(), logger, idx+1))
+    #                    )
+    #
+    # for idx in range(no_threads):
+    #     threads[idx].start()
+    #
+    # for idx in range(no_threads):
+    #     threads[idx].join()
+    crawl_data(
+        db=db_connection,
+        seed_url_list=seed_urls_list,
+        log=logger,
+        thread=1
+    )
 
     counting_reports, total_time = parser_log(log_file=f'logs/batdongsan_{crawling_date}.log')
     create_visualize_figure(
