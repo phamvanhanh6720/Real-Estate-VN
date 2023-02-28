@@ -7,18 +7,35 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 
+import multiprocessing.pool
+import functools
+
+
+def timeout(max_timeout):
+    """Timeout decorator, parameter in seconds."""
+    def timeout_decorator(item):
+        """Wrap the original function."""
+        @functools.wraps(item)
+        def func_wrapper(*args, **kwargs):
+            """Closure for function."""
+            pool = multiprocessing.pool.ThreadPool(processes=1)
+            async_result = pool.apply_async(item, args, kwargs)
+            # raises a TimeoutError if execution exceeds max_timeout
+            return async_result.get(max_timeout)
+        return func_wrapper
+    return timeout_decorator
+
+
 def scroll_down(driver, max_sleep_time: int):
-    time.sleep(random.randint(0, max_sleep_time))
+    # time.sleep(random.randint(0, max_sleep_time))
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(random.randint(0, max_sleep_time))
 
 
+@timeout(8)
 def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict, page_load_time_out: int):
-    try:
-        driver.get(url)
-        driver.set_page_load_timeout(page_load_time_out)
-    except:
-        raise Exception("Page load timeout")
+
+    driver.get(url)
     scroll_down(driver, int(max_sleep_time))
     html = driver.page_source
     soup_item = BeautifulSoup(html, features="html.parser")
@@ -60,8 +77,8 @@ def parser_log(log_file):
     data_log_lines = [data for data in data_log_lines if data != '']
 
     real_estate_type_count = {
-        'Done': {},
-        'Already crawled': {},
+        'Fetch raw': {},
+        'Already exist': {},
         'Fail': {}
         }
     for data in data_log_lines:

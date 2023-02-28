@@ -6,12 +6,11 @@ import datetime
 import threading
 from configparser import ConfigParser
 
-import numpy as np
 import telebot
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 
-from utils import scroll_down, crawl_each_news_item, parser_log, create_visualize_figure
+from utils import scroll_down, parser_log, create_visualize_figure
 from connector import Database
 
 
@@ -66,12 +65,12 @@ def extract_news_data(element, driver):
         'published_date': published_date,
         'project': project
     }
-    crawl_each_news_item(driver, url, MAX_SLEEP_TIME, news_data, page_load_time_out=PAGE_LOAD_TIMEOUT)
+    # crawl_each_news_item(driver, url, MAX_SLEEP_TIME, news_data, page_load_time_out=PAGE_LOAD_TIMEOUT)
 
     return news_data
 
 
-def crawl_data(db, seed_url_list, log, thread):
+def fetch_raw_news(db, seed_url_list, log, thread):
     options = uc.ChromeOptions()
     options.headless = False
     options.add_argument('--disable-gpu')
@@ -100,16 +99,16 @@ def crawl_data(db, seed_url_list, log, thread):
         real_estate_type = real_estate_type.replace('-', '_')
 
         # while True:
-        start_page = 1
+        start_page = 0
         no_saved_news = 0
-        while True and start_page < 1000:
+        failed_count = 0
+        while True and failed_count < 50:
             main_url = f'{seed_url}/p{start_page}'
             log.info(f"Start crawl pages: {main_url}")
             try:
                 driver.get(main_url)
-                driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
             except:
-                start_page += 1
+                failed_count += 1
                 continue
 
             scroll_down(driver, int(MAX_SLEEP_TIME))
@@ -118,7 +117,7 @@ def crawl_data(db, seed_url_list, log, thread):
             soup = BeautifulSoup(html_content, features="html.parser")
 
             if soup.find('div', class_='re__srp-empty js__srp-empty') or no_saved_news > MAX_DONE_PAGES:
-                log.info(f"Crawling {seed_url} is have already done")
+                log.info(f"Fetched all news of {seed_url}")
                 break
 
             news_elements = soup.find_all('a', class_='js__product-link-for-product-id')
@@ -126,12 +125,14 @@ def crawl_data(db, seed_url_list, log, thread):
                 try:
                     news_data = extract_news_data(ele, driver)
                     news_data['real_estate_type'] = real_estate_type
+                    news_data['is_done'] = False
                     try:
-                        db[COLLECTION].insert_one(news_data)
-                        log.info(f"{real_estate_type} - Done: {HOSTNAME}{ele.get('href')}")
+                        db[RAW_COLLECTION].insert_one(news_data)
+
+                        log.info(f"{real_estate_type} - Fetch raw: {HOSTNAME}{ele.get('href')}")
                     except:
                         no_saved_news += 1
-                        log.info(f"{real_estate_type} - Already crawled: {HOSTNAME}{ele.get('href')}")
+                        log.info(f"{real_estate_type} - Already exist: {HOSTNAME}{ele.get('href')}")
 
                 except Exception as e:
                     print(e)
@@ -146,7 +147,7 @@ def crawl_data(db, seed_url_list, log, thread):
 if __name__ == '__main__':
     # create logger
     crawling_date = datetime.date.today()
-    logging.basicConfig(filename=f'logs/batdongsan_{crawling_date}.log',
+    logging.basicConfig(filename=f'logs/batdongsan_raw_{crawling_date}.log',
                         format='%(asctime)s - %(message)s',
                         datefmt='%d-%b-%y %H:%M:%S')
     logger = logging.getLogger(__name__)
@@ -159,10 +160,11 @@ if __name__ == '__main__':
     MAX_SLEEP_TIME: int = int(config.get('TIME', 'MAX_SLEEP_TIME'))
     HOSTNAME = config.get('URL', 'HOST_NAME')
     COLLECTION = config.get('DB', 'COLLECTION')
+    RAW_COLLECTION = config.get('DB', 'RAW_COLLECTION')
 
     MAX_DONE_PAGES = int(config.get('STOP', 'MAX_DONE_PAGES'))
     PAGE_LOAD_TIMEOUT = int(config.get('TIME', 'PAGE_LOAD_TIMEOUT'))
-    SCRIPT_LOAD_TIMEOUT =  int(config.get('TIME', 'SCRIPT_LOAD_TIMEOUT'))
+    SCRIPT_LOAD_TIMEOUT = int(config.get('TIME', 'SCRIPT_LOAD_TIMEOUT'))
 
     db_connection = Database(
         host=config.get('DB', 'HOST'),
@@ -184,31 +186,18 @@ if __name__ == '__main__':
     seed_urls_list = [url.strip(' \n') for url in seed_urls_list if url != '']
 
     no_threads = int(config.get('THREAD', 'NUM_THREADS'))
-    # seed_urls_list = np.array_split(seed_urls_list, no_threads)
-    # seed_urls_list = [seed_urls.tolist() for seed_urls in seed_urls_list]
 
-    # threads = []
-    # for idx in range(no_threads):
-    #     threads.append(threading.Thread(target=crawl_data,
-    #                                     args=(db_connection, seed_urls_list[idx].copy(), logger, idx+1))
-    #                    )
-    #
-    # for idx in range(no_threads):
-    #     threads[idx].start()
-    #
-    # for idx in range(no_threads):
-    #     threads[idx].join()
-    crawl_data(
+    fetch_raw_news(
         db=db_connection,
         seed_url_list=seed_urls_list,
         log=logger,
         thread=1
     )
 
-    counting_reports, total_time = parser_log(log_file=f'logs/batdongsan_{crawling_date}.log')
+    counting_reports, total_time = parser_log(log_file=f'logs/batdongsan_raw_{crawling_date}.log')
     create_visualize_figure(
         counting_reports=counting_reports,
-        save_file=f'daily_reports/batdongsan_{crawling_date}.png'
+        save_file=f'daily_reports/batdongsan_raw_{crawling_date}.png'
     )
 
     bot.send_message(
@@ -218,6 +207,6 @@ if __name__ == '__main__':
 
     bot.send_photo(
         chat_id=int(config.get('TELEBOT', 'CHAT_ID')),
-        photo=open(f'daily_reports/batdongsan_{crawling_date}.png', 'rb')
+        photo=open(f'daily_reports/batdongsan_raw_{crawling_date}.png', 'rb')
     )
     bot.stop_bot()
