@@ -10,7 +10,7 @@ import telebot
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 
-from utils import scroll_down, parser_log, create_visualize_figure
+from utils import scroll_down, parser_log, create_visualize_figure, get_main_page
 from connector import Database
 
 
@@ -101,14 +101,40 @@ def fetch_raw_news(db, seed_url_list, log, thread):
         # while True:
         start_page = 0
         no_saved_news = 0
+
+        is_failed = False
         failed_count = 0
-        while True and failed_count < 50:
+        while True:
+            if failed_count >= 10:
+                failed_count = 0
+                start_page += 1
+
+            if is_failed:
+                print("Create new driver")
+                options = uc.ChromeOptions()
+                options.headless = False
+                options.add_argument('--disable-gpu')
+                options.page_load_strategy = 'normal'
+                driver = uc.Chrome(use_subprocess=False,
+                                   options=options,
+                                   driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
+                                   )
+                driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
+                driver.set_script_timeout(SCRIPT_LOAD_TIMEOUT)
+                is_failed = False
+
             main_url = f'{seed_url}/p{start_page}'
             log.info(f"Start crawl pages: {main_url}")
             try:
-                driver.get(main_url)
-            except:
+                get_main_page(driver, main_url)
+            except Exception as e:
+                print(e)
+
                 failed_count += 1
+                is_failed = True
+                driver.quit()
+
+                del driver
                 continue
 
             scroll_down(driver, int(MAX_SLEEP_TIME))
@@ -126,17 +152,26 @@ def fetch_raw_news(db, seed_url_list, log, thread):
                     news_data = extract_news_data(ele, driver)
                     news_data['real_estate_type'] = real_estate_type
                     news_data['is_done'] = False
+
+                    if db[COLLECTION].find_one({'url': news_data['url'], 'published_date': news_data['published_date']}) is not None:
+                        no_saved_news += 1
+                        log.info(f"{real_estate_type} - Already exist: {HOSTNAME}{ele.get('href')}")
+                        print(f"{real_estate_type} - Already exist: {HOSTNAME}{ele.get('href')}")
+                        continue
+
                     try:
                         db[RAW_COLLECTION].insert_one(news_data)
-
                         log.info(f"{real_estate_type} - Fetch raw: {HOSTNAME}{ele.get('href')}")
+                        print(f"{real_estate_type} - Fetch raw: {HOSTNAME}{ele.get('href')}")
                     except:
                         no_saved_news += 1
                         log.info(f"{real_estate_type} - Already exist: {HOSTNAME}{ele.get('href')}")
+                        print(f"{real_estate_type} - Already exist: {HOSTNAME}{ele.get('href')}")
 
                 except Exception as e:
                     print(e)
-                    log.info(f"{real_estate_type} - Fail: {HOSTNAME}{ele.get('href')}" )
+                    log.info(f"{real_estate_type} - Fail: {HOSTNAME}{ele.get('href')}")
+                    print(f"{real_estate_type} - Fail: {HOSTNAME}{ele.get('href')}")
 
             time.sleep(random.randint(0, MAX_SLEEP_TIME))
             start_page += 1

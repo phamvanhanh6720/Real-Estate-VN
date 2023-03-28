@@ -32,7 +32,12 @@ def scroll_down(driver, max_sleep_time: int):
     time.sleep(random.randint(0, max_sleep_time))
 
 
-@timeout(8)
+@timeout(10)
+def get_main_page(driver, url):
+    driver.get(url)
+
+
+@timeout(10)
 def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict, page_load_time_out: int):
 
     driver.get(url)
