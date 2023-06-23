@@ -19,14 +19,16 @@ from connector import Database
 def extract_raw_news(db, thread):
     options = uc.ChromeOptions()
     options.headless = False
-    options.add_argument('--disable-gpu')
-    options.page_load_strategy = 'normal'
-    driver = uc.Chrome(use_subprocess=False,
+    # options.add_argument('--disable-gpu')
+    options.page_load_strategy = 'eager'
+    driver = uc.Chrome(use_subprocess=True,
                        options=options,
-                       driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
+                       # driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
+                       driver_executable_path='/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_linux64/chromedriver_110_1'
                        )
     driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
     driver.set_script_timeout(SCRIPT_LOAD_TIMEOUT)
+    driver.set_window_size(800, 600)
 
     failed_count = 0
     is_failed = False
@@ -35,14 +37,16 @@ def extract_raw_news(db, thread):
             print("Create new driver")
             options = uc.ChromeOptions()
             options.headless = False
-            options.add_argument('--disable-gpu')
-            options.page_load_strategy = 'normal'
-            driver = uc.Chrome(use_subprocess=False,
+            # options.add_argument('--disable-gpu')
+            options.page_load_strategy = 'eager'
+            driver = uc.Chrome(use_subprocess=True,
                                options=options,
-                               driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
+                               # driver_executable_path=f'/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_{thread}'
+                               driver_executable_path='/home/phamvanhanh6720/PycharmProjects/Real-Estate-VN/crawling/batdongsan.com/driver/chromedriver_linux64/chromedriver_110_1'
                                )
             driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
             driver.set_script_timeout(SCRIPT_LOAD_TIMEOUT)
+            driver.set_window_size(800, 600)
             is_failed = False
 
         raw_news = db[RAW_COLLECTION].find_one({'is_done': False})
