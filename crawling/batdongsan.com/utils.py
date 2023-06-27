@@ -32,38 +32,64 @@ def scroll_down(driver, max_sleep_time: int):
     time.sleep(random.randint(0, max_sleep_time))
 
 
-@timeout(5)
+@timeout(10)
 def get_main_page(driver, url):
     driver.get(url)
 
 
 # @timeout(7)
-def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict, page_load_time_out: int):
+def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict):
 
     get_main_page(driver, url)
     scroll_down(driver, int(max_sleep_time))
     html = driver.page_source
     soup_item = BeautifulSoup(html, features="html.parser")
 
+    # location
     detail_loc_element = soup_item.find('span', class_='re__pr-short-description js__pr-address')
     detail_location = detail_loc_element.text if detail_loc_element else None
     if 'Dự án' in detail_location:
         detail_location = ','.join(detail_location.split(',')[1:])
-    news_data['detail_location'] = detail_location
 
+    # description
     description_element = soup_item.find('div', class_='re__section-body re__detail-content js__section-body js__pr-description js__tracking')
     text_description = description_element.text if description_element else None
-    news_data['description'] = text_description
 
-    no_bedroom = None
+    # number of bedroom, price, price per m2, area
     for element in soup_item.find_all('div', class_='re__pr-short-info-item js__pr-short-info-item'):
         if element.find('span', class_='title').text == 'Phòng ngủ':
-            no_bedroom = element.find('span', class_='value').text
-            no_bedroom = int(no_bedroom.strip(' PN'))
+            no_bedroom = element.find('span', class_='value')
+            if no_bedroom is not None:
+                no_bedroom = no_bedroom.text
+                no_bedroom = int(no_bedroom.strip(' PN'))
 
-    if news_data['no_bedroom'] is None:
-        news_data['no_bedroom'] = no_bedroom
+        if element.find('span', class_='title').text == 'Mức giá':
+            price = element.find('span', class_='value').text
+            if 'tỷ' in price:
+                price = float(price.strip(' tỷ').replace(',', '.'))
+            elif 'triệu' in price:
+                price = float(price.strip(' triệu').replace(',', '.')) / 1000
 
+            price_per_m2 = element.find('span', class_='ext')
+            if price_per_m2 is not None:
+                price_per_m2 = price_per_m2.text.replace('~', '').replace(',', '.')
+                price_per_m2 = price_per_m2.strip(' triệu/m²')
+
+        if element.find('span', class_='title').text == 'Diện tích':
+            area = element.find('span', class_='value')
+            if area is not None:
+                area = area.text
+                area = float(area.strip(' m²').replace(',', '.'))
+
+    # project
+    project = None
+    if '-prj-' in url:
+        project = url.split('-prj-')[-1].split('/')[0]
+
+    # title
+    title = soup_item.find('h1', class_='re__pr-title pr-title js__pr-title').text
+
+    # information about publisher
     published_by_element = soup_item.find('div', class_='re__contact-name js_contact-name')
     published_by = published_by_element.get('title') if published_by_element else None
 
@@ -72,6 +98,16 @@ def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict, page_load
 
     news_data['published_by'] = published_by
     news_data['phone_number'] = phone_number
+    news_data['no_bedroom'] = no_bedroom
+    news_data['price'] = price
+    news_data['price_per_m2'] = price_per_m2
+    news_data['area'] = area
+    news_data['detail_location'] = detail_location
+    news_data['description'] = text_description
+    news_data['title'] = title
+    news_data['project'] = project
+
+    print(news_data)
 
 
 def parser_log(log_file):
