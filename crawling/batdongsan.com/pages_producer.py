@@ -1,12 +1,11 @@
 import os
 import pika
-import datetime
 from configparser import ConfigParser
 
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 
-from utils import scroll_down, parser_log, create_visualize_figure, get_main_page
+from utils import scroll_down, get_main_page
 
 
 if __name__ == '__main__':
@@ -34,18 +33,18 @@ if __name__ == '__main__':
     channel.queue_bind('dead_letter_queue', 'dlx_exchange', 'dlx_page_routing')
     channel.queue_bind(queue='pages_queue', exchange='exchange', routing_key='page_routing')
 
-    # PAGE_LOAD_TIMEOUT = int(config.get('TIME', 'PAGE_LOAD_TIMEOUT'))
-    # SCRIPT_LOAD_TIMEOUT = int(config.get('TIME', 'SCRIPT_LOAD_TIMEOUT'))
-    # MAX_SLEEP_TIME: int = int(config.get('TIME', 'MAX_SLEEP_TIME'))
-    PAGE_LOAD_TIMEOUT = 10
-    SCRIPT_LOAD_TIMEOUT = 5
-    MAX_SLEEP_TIME = 2
+    PAGE_LOAD_TIMEOUT = int(config.get('TIME', 'PAGE_LOAD_TIMEOUT'))
+    SCRIPT_LOAD_TIMEOUT = int(config.get('TIME', 'SCRIPT_LOAD_TIMEOUT'))
+    MAX_SLEEP_TIME: int = int(config.get('TIME', 'MAX_SLEEP_TIME'))
+    # PAGE_LOAD_TIMEOUT = 10
+    # SCRIPT_LOAD_TIMEOUT = 5
+    # MAX_SLEEP_TIME = 2
 
-    # seed_urls_file = config.get('URL', 'SEED_URL_FILE')
-    # with open(os.path.join('config', seed_urls_file), 'r') as file:
-    #     seed_urls_list = file.readlines()
-    # seed_urls_list = [url.strip(' \n') for url in seed_urls_list if url != '']
-    seed_urls_list = ['https://batdongsan.com.vn/ban-can-ho-chung-cu-ha-noi']
+    seed_urls_file = config.get('URL', 'SEED_URL_FILE')
+    with open(os.path.join('config', seed_urls_file), 'r') as file:
+        seed_urls_list = file.readlines()
+    seed_urls_list = [url.strip(' \n') for url in seed_urls_list if url != '']
+    # seed_urls_list = ['https://batdongsan.com.vn/ban-can-ho-chung-cu-ha-noi']
 
     # create selenium driver
     options = uc.ChromeOptions()
@@ -56,23 +55,9 @@ if __name__ == '__main__':
                        options=options
                        )
     driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
+    driver.set_script_timeout(SCRIPT_LOAD_TIMEOUT)
 
     for seed_url in seed_urls_list:
-        real_estate_type = None
-        if 'can-ho-chung-cu' in seed_url:
-            real_estate_type = 'can-ho-chung-cu'
-        elif 'nha-rieng' in seed_url:
-            real_estate_type = 'nha-rieng'
-        elif 'nha-biet-thu-lien-ke' in seed_url:
-            real_estate_type = 'nha-biet-thu-lien-ke'
-        elif 'nha-mat-pho' in seed_url:
-            real_estate_type = 'nha-mat-pho'
-        elif 'shophouse-nha-pho-thuong-mai' in seed_url:
-            real_estate_type = 'shophouse-nha-pho-thuong-mai'
-        elif 'dat-dat-nen' in seed_url:
-            real_estate_type = 'dat-dat-nen'
-        real_estate_type = real_estate_type.replace('-', '_')
-
         start_page = 0
         main_url = f'{seed_url}/p{start_page}'
 

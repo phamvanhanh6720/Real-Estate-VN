@@ -17,21 +17,20 @@ if __name__ == '__main__':
 
     MAX_SLEEP_TIME: int = int(config.get('TIME', 'MAX_SLEEP_TIME'))
     HOSTNAME = config.get('URL', 'HOST_NAME')
-    # COLLECTION = config.get('DB', 'COLLECTION')
-    # RAW_COLLECTION = config.get('DB', 'RAW_COLLECTION')
+    COLLECTION = config.get('DB', 'COLLECTION')
 
     PAGE_LOAD_TIMEOUT = int(config.get('TIME', 'PAGE_LOAD_TIMEOUT'))
     SCRIPT_LOAD_TIMEOUT = int(config.get('TIME', 'SCRIPT_LOAD_TIMEOUT'))
 
-    # db_connection = Database(
-    #     host=config.get('DB', 'HOST'),
-    #     port=int(config.get('DB', 'PORT')),
-    #     username=config.get('DB', 'USERNAME'),
-    #     password=config.get('DB', 'PASSWORD'),
-    #     authSource='admin',
-    #     authMechanism='SCRAM-SHA-1',
-    #     database=config.get('DB', 'DATABASE')
-    # ).get_db()
+    db_connection = Database(
+        host=config.get('DB', 'HOST'),
+        port=int(config.get('DB', 'PORT')),
+        username=config.get('DB', 'USERNAME'),
+        password=config.get('DB', 'PASSWORD'),
+        authSource='admin',
+        authMechanism='SCRAM-SHA-1',
+        database=config.get('DB', 'DATABASE')
+    ).get_db()
     # logger.info('Connect to MongoDB done')
 
     # rabbitmq connection
@@ -105,10 +104,9 @@ if __name__ == '__main__':
                     published_date_element = ele.find('span', class_='re__card-published-info-published-at')
                     published_date = published_date_element.get('aria-label') if published_date_element else None
 
-                    # if db_connection[COLLECTION].find_one(
-                    #         {'url': news_url, 'published_date': published_date}) is not None:
-                    if False:
-                        print("Already exist")
+                    if db_connection[COLLECTION].find_one(
+                            {'url': news_url, 'published_date': published_date}) is not None:
+                        print(f"Already exist: {news_url}")
                     else:
                         ch.basic_publish(
                             exchange='exchange',

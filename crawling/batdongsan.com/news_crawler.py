@@ -29,22 +29,20 @@ if __name__ == '__main__':
 
     MAX_SLEEP_TIME: int = int(config.get('TIME', 'MAX_SLEEP_TIME'))
     HOSTNAME = config.get('URL', 'HOST_NAME')
-    # COLLECTION = config.get('DB', 'COLLECTION')
-    # RAW_COLLECTION = config.get('DB', 'RAW_COLLECTION')
+    COLLECTION = config.get('DB', 'COLLECTION')
 
     PAGE_LOAD_TIMEOUT = int(config.get('TIME', 'PAGE_LOAD_TIMEOUT'))
     SCRIPT_LOAD_TIMEOUT = int(config.get('TIME', 'SCRIPT_LOAD_TIMEOUT'))
 
-    # db_connection = Database(
-    #     host=config.get('DB', 'HOST'),
-    #     port=int(config.get('DB', 'PORT')),
-    #     username=config.get('DB', 'USERNAME'),
-    #     password=config.get('DB', 'PASSWORD'),
-    #     authSource='admin',
-    #     authMechanism='SCRAM-SHA-1',
-    #     database=config.get('DB', 'DATABASE')
-    # ).get_db()
-    # logger.info('Connect to MongoDB done')
+    db_connection = Database(
+        host=config.get('DB', 'HOST'),
+        port=int(config.get('DB', 'PORT')),
+        username=config.get('DB', 'USERNAME'),
+        password=config.get('DB', 'PASSWORD'),
+        authSource='admin',
+        authMechanism='SCRAM-SHA-1',
+        database=config.get('DB', 'DATABASE')
+    ).get_db()
 
     # bot = telebot.TeleBot(config.get('TELEBOT', 'TOKEN'))
 
@@ -74,12 +72,14 @@ if __name__ == '__main__':
         news_data = json.loads(data)
 
         try:
-            crawl_each_news_item(
+            detail_news_data = crawl_each_news_item(
                 driver=driver,
                 url=news_data['url'],
                 max_sleep_time=MAX_SLEEP_TIME,
                 news_data=deepcopy(news_data)
             )
+            db_connection[COLLECTION].insert_one(detail_news_data)
+            print(f"Success: {detail_news_data['url']}")
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
