@@ -52,7 +52,7 @@ if __name__ == '__main__':
                 channel.basic_publish(
                     exchange='nhatot_exchange',
                     routing_key='nhatot_news_routing',
-                    body=str(item['list_id']),
+                    body=json.dumps({'list_id': item['list_id'], 'list_time': item['list_time']}),
                     properties=pika.BasicProperties(
                         delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
                     )
