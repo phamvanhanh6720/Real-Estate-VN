@@ -4,3 +4,6 @@ crawling/batdongsan.com/config
 crawling/batdongsan.com/logs
 crawling/batdongsan.com/driver
 crawling/batdongsan.com/daily_reports
+crawling/batdongsan.com/new_task.py
+crawling/batdongsan.com/worker.py
+crawling/nhatot.com/config
