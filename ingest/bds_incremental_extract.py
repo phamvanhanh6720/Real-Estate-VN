@@ -60,12 +60,10 @@ if __name__ == '__main__':
         os.makedirs(dir_path, exist_ok=True)
 
     for i, batch in enumerate(fetch_data_in_batches(database_name, collection_name, 10000)):
-        # data = pd.DataFrame(batch)
-        # data['_id'] = data['_id'].apply(lambda x: str(x))
-        #
-        # table = pa.Table.from_pandas(data)
-        write_json_file(batch, os.path.join(dir_path, 'batch_' + str(i + 1) + '.json'))
-        # pq.write_table(table, os.path.join(dir_path, 'batch_' + str(i + 1) + '.parquet'))
+        data = pd.DataFrame(batch)
+        data['_id'] = data['_id'].apply(lambda x: str(x))
+
+        data.to_csv(os.path.join(dir_path, 'batch_' + str(i + 1) + '.csv'), index=False)
 
     upload_folder_to_s3(
         bucket_name='realestate-vn-data-lake',
