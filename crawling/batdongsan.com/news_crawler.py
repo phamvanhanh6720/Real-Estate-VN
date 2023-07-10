@@ -3,6 +3,7 @@ import os
 import pika
 import json
 from configparser import ConfigParser
+from datetime import datetime
 
 import pymongo
 from copy import deepcopy
@@ -77,6 +78,8 @@ while True:
             max_sleep_time=MAX_SLEEP_TIME,
             news_data=deepcopy(news_data)
         )
+
+        detail_news_data['crawl_time'] = datetime.now()
         db_connection[COLLECTION].insert_one(detail_news_data)
         print(f"Success: {detail_news_data['url']}")
         channel.basic_ack(delivery_tag=method.delivery_tag)

@@ -2,6 +2,7 @@ import os
 import pika
 import json
 import requests
+from datetime import datetime
 from configparser import ConfigParser
 
 import pymongo
@@ -58,6 +59,8 @@ while True:
                 detail_data = json.loads(response.text)
                 detail_data['list_id'] = list_id
                 detail_data['list_time'] = list_time
+
+                detail_data['crawl_time'] = datetime.now()
 
                 db_connection[COLLECTION].insert_one(detail_data)
                 print(f'Success: {list_id}')
