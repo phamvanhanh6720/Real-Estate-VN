@@ -47,13 +47,13 @@ def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict):
 
     # location
     detail_loc_element = soup_item.find('span', class_='re__pr-short-description js__pr-address')
-    detail_location = detail_loc_element.text if detail_loc_element else None
+    detail_location = detail_loc_element.text  # if detail_loc_element else None
     if 'Dự án' in detail_location:
         detail_location = ','.join(detail_location.split(',')[1:])
 
     # description
     description_element = soup_item.find('div', class_='re__section-body re__detail-content js__section-body js__pr-description js__tracking')
-    text_description = description_element.text if description_element else None
+    text_description = description_element.text  # if description_element else None
 
     # number of bedroom, price, price per m2, area=
     no_bedroom = None
@@ -116,10 +116,10 @@ def crawl_each_news_item(driver, url, max_sleep_time, news_data: dict):
 
     # information about publisher
     published_by_element = soup_item.find('div', class_='re__contact-name js_contact-name')
-    published_by = published_by_element.get('title') if published_by_element else None
+    published_by = published_by_element.get('title')  # if published_by_element else None
 
-    phone_number_element = soup_item.find('span', class_='phoneEvent js__phone-event')
-    phone_number = phone_number_element.text.strip('\n ').strip(' · Hiện số') if phone_number_element else None
+    phone_number_element = soup_item.find('div', class_='re__btn re__btn-cyan-solid--md phone js__phone phoneEvent js__phone-event').find('span')
+    phone_number = phone_number_element.text.strip('\n ').strip(' · Hiện số')  # if phone_number_element else None
 
     news_data['published_by'] = published_by
     news_data['phone_number'] = phone_number

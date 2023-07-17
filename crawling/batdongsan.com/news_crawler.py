@@ -2,6 +2,7 @@ import json
 import os
 import pika
 import json
+import logging
 from configparser import ConfigParser
 from datetime import datetime
 
@@ -13,12 +14,12 @@ from utils import scroll_down, parser_log, create_visualize_figure, crawl_each_n
 
 
 # create logger
-# crawling_date = datetime.date.today()
-# logging.basicConfig(filename=f'logs/batdongsan{crawling_date}.log',
-#                     format='%(asctime)s - %(message)s',
-#                     datefmt='%d-%b-%y %H:%M:%S')
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
+crawling_date = datetime.today().date()
+logging.basicConfig(filename=f'logs/batdongsan{crawling_date}.log',
+                    format='%(asctime)s - %(message)s',
+                    datefmt='%d-%b-%y %H:%M:%S')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 # read config
 config = ConfigParser()
@@ -85,8 +86,8 @@ while True:
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
     except Exception as e:
-        print(e)
         print(f"Fail: {news_data['url']}")
+        logger.warning(f"Fail: {e} {news_data['url']}")
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 # channel.basic_consume('news_queue', on_message_callback=extract_news_info)
