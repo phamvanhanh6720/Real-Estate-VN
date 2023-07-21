@@ -10,4 +10,6 @@ crawling/nhatot.com/config
 hanhpv_accessKeys.csv
 ingest/config.ini
 ingest/migration_data/*
+.DS_Store
+ingest/.DS_Store/
 ingest/copy_data.sql
