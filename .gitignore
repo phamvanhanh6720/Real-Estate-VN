@@ -13,3 +13,4 @@ ingest/migration_data/*
 .DS_Store
 ingest/.DS_Store/
 ingest/copy_data.sql
+containers/airflow/logs
