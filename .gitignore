@@ -8,7 +8,7 @@ crawling/batdongsan.com/new_task.py
 crawling/batdongsan.com/worker.py
 crawling/nhatot.com/config
 hanhpv_accessKeys.csv
-ingest/config.ini
+ingest/batdongsan.com/config.ini
 ingest/migration_data/*
 .DS_Store
 ingest/.DS_Store/

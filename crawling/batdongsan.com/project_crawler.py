@@ -1,7 +1,4 @@
-import json
 import os
-import pika
-import json
 from configparser import ConfigParser
 from datetime import datetime
 
@@ -9,7 +6,7 @@ import pymongo
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 
-from utils import scroll_down, get_main_page
+from utils import scroll_down
 
 # read config
 config = ConfigParser()
@@ -32,16 +29,6 @@ mongodb_connection = pymongo.MongoClient(
 )
 db_connection = mongodb_connection[config.get('DB', 'DATABASE')]
 
-# bot = telebot.TeleBot(config.get('TELEBOT', 'TOKEN'))
-
-# rabbitmq_connection = pika.BlockingConnection(
-#     pika.ConnectionParameters(
-#         host='localhost',
-#         port='5672'
-#     )
-# )
-#
-# channel = rabbitmq_connection.channel()
 
 options = uc.ChromeOptions()
 # options.add_argument('--headless=new')
@@ -55,11 +42,11 @@ driver = uc.Chrome(
 driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
 driver.set_script_timeout(SCRIPT_LOAD_TIMEOUT)
 
-start_page = 0
+start_page = 338
 seed_url = 'https://batdongsan.com.vn/du-an-bat-dong-san'
 main_url = f'{seed_url}/p{start_page}'
 
-get_main_page(driver, main_url)
+driver.get(main_url)
 scroll_down(driver, int(MAX_SLEEP_TIME))
 
 html_content = driver.page_source
@@ -70,7 +57,7 @@ max_page = max([int(item.text.strip('\n ')) for item in pagination_components])
 
 for page in range(start_page, max_page + 1):
     main_url = f'{seed_url}/p{page}'
-    get_main_page(driver, main_url)
+    driver.get(main_url)
     scroll_down(driver, int(MAX_SLEEP_TIME))
 
     html_content = driver.page_source
@@ -114,6 +101,9 @@ for page in range(start_page, max_page + 1):
         project_list.append(project_data)
 
     for data in project_list:
-        db_connection['data.projects_v2'].insert_one(data)
+        try:
+            db_connection['data.projects'].insert_one(data)
+        except Exception as e:
+            db_connection['data.projects'].update_one({'_id': data['_id']}, {'$set': data})
 
     print('Crawl page done: ', page)
