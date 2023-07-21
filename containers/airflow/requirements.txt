@@ -3,3 +3,4 @@ pandas
 numpy
 pyarrow
 apache-airflow-providers-amazon==8.3.1
+awscli

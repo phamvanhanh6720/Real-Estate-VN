@@ -21,7 +21,7 @@ with DAG(
     dag_id=DAG_ID,
     description="Run AWS Glue ETL Jobs - Batdongsan - Raw to Trusted Data",
     default_args=DEFAULT_ARGS,
-    dagrun_timeout=timedelta(minutes=5),
+    dagrun_timeout=timedelta(minutes=15),
     start_date=days_ago(1),
     schedule_interval=None,
     tags=["data lake", "batdongsan", "raw"],
@@ -30,12 +30,6 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
-    list_glue_tables = BashOperator(
-        task_id="list_glue_tables",
-        bash_command="""aws glue get-tables --database-name tickit_demo \
-                          --query 'TableList[].Name' --expression "raw_*"  \
-                          --output table""",
-    )
     task_1 = GlueJobOperator(
         task_id="batdongsan_raw_to_trusted_loc.districts",
         job_name="batdongsan_raw_to_trusted_loc.districts",
@@ -66,4 +60,16 @@ with DAG(
         aws_conn_id="aws_user_datalake"
     )
 
-    begin >> [task_1, task_2, task_3, task_4, task_5] >> end
+    task_6 = GlueJobOperator(
+        task_id="batdongsan_data.users_trusted",
+        job_name="batdongsan_data.users_trusted",
+        aws_conn_id="aws_user_datalake"
+    )
+
+    task_7 = GlueJobOperator(
+        task_id="batdongsan_address_trusted",
+        job_name="batdongsan_address_trusted",
+        aws_conn_id="aws_user_datalake"
+    )
+
+    begin >> [task_1, task_2, task_4, task_5] >> task_3 >> [task_6, task_7] >> end

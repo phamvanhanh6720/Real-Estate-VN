@@ -14,3 +14,4 @@ ingest/migration_data/*
 ingest/.DS_Store/
 ingest/copy_data.sql
 containers/airflow/logs
+containers/airflow/.env
