@@ -55,7 +55,7 @@ channel = rabbitmq_connection.channel()
 
 options = uc.ChromeOptions()
 options.add_argument('--headless=new')
-options.headless = False
+# options.headless = False
 options.add_argument('--disable-gpu')
 options.page_load_strategy = 'normal'
 driver = uc.Chrome(
@@ -69,6 +69,10 @@ driver.set_script_timeout(SCRIPT_LOAD_TIMEOUT)
 channel.basic_qos(prefetch_count=1)
 while True:
     method, _, body = channel.basic_get(queue='news_queue', auto_ack=False)
+    # method, _, body = channel.basic_get(queue='dead_letter_news_queue', auto_ack=False)
+    if method is None:
+        break
+
     data = body.decode()
     news_data = json.loads(data)
 
@@ -86,7 +90,7 @@ while True:
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
     except Exception as e:
-        print(f"Fail: {news_data['url']}")
+        print(f"Fail: {e} {news_data['url']}")
         logger.warning(f"Fail: {e} {news_data['url']}")
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 

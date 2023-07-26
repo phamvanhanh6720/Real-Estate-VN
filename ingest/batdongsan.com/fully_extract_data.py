@@ -68,6 +68,6 @@ def fully_extract_data(
 
 if __name__ == '__main__':
     fully_extract_data(
-        collection_name='data.projects_by_districts',
+        collection_name='loc.districts',
         extract_date=None
     )

@@ -111,7 +111,7 @@ while True:
                 published_date = published_date_element.get('aria-label') if published_date_element else None
 
                 if db_connection[COLLECTION].find_one(
-                        {'url': news_url, 'published_date': published_date}) is not None:
+                        {'url': news_url}) is not None:
                     print(f"Already exist: {news_url}")
                 else:
                     channel.basic_publish(

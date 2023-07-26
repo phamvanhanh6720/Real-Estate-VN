@@ -26,7 +26,7 @@ with DAG(
     dagrun_timeout=timedelta(minutes=15),
     start_date=days_ago(1),
     schedule_interval=None,
-    tags=["data lake", "batdongsan", "raw"],
+    tags=["data lake", "batdongsan", "data catalog"]
 ) as dag:
     begin = EmptyOperator(task_id="begin")
 
